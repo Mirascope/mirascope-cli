@@ -4,9 +4,18 @@ One of the main frustrations of dealing with prompts and calls is keeping track 
 
 ## Installation
 
-To install just the CLI, you can run `pip install mirascope-cli`.
+To install just the CLI, you can run:
 
-If you're using `mirascope`, you can run `pip install mirascope[mirascope-cli]` or `pip install mirascope[all]` to install the Mirascope CLI.
+```shell
+pip install mirascope-cli
+```
+
+If you're using the `mirascope` package, you can also install the CLI as an extra dependency:
+
+```shell
+pip install mirascope[mirascope-cli]  # just the mirascope-cli
+pip install mirascope[all]            # all optional dependencies
+```
 
 ## The prompt management environment
 
