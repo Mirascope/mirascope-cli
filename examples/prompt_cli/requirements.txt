@@ -1,0 +1,1 @@
+mirascope[cli]==^0.10.0
