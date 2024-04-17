@@ -4,7 +4,12 @@ from mirascope.openai import OpenAICall, OpenAICallParams
 
 number = 1
 chat = OpenAICall()
-a_list = [1, 2, 3]
+
+
+def foo(a: int, b: str) -> int:
+    """ABC"""
+
+    return a + int(b)
 
 
 @tags(["movie_project", "version:0001"])
@@ -28,3 +33,6 @@ class MovieRecommender(OpenAICall):
     genre: str
 
     call_params = OpenAICallParams(model="gpt-3.5-turbo")
+
+
+a_list = [1, 2, 3]

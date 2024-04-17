@@ -1,5 +1,4 @@
 """A prompt for recommending movies of a particular genre."""
-
 from mirascope import BasePrompt, tags
 
 prev_revision_id = "0001"

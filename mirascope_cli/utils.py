@@ -1,5 +1,4 @@
 """Utility functions for the mirascope library."""
-
 from __future__ import annotations
 
 import ast
@@ -14,9 +13,11 @@ from typing import Any, Literal, Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
 
-from .enums import MirascopeCommand
+from mirascope_cli.enums import MirascopeCommand
+
 from .constants import CURRENT_REVISION_KEY, LATEST_REVISION_KEY
 from .schemas import (
+    ASTOrder,
     ClassInfo,
     FunctionInfo,
     MirascopeCliVariables,
@@ -66,24 +67,37 @@ class PromptAnalyzer(ast.NodeVisitor):
         self.classes: list[ClassInfo] = []
         self.functions: list[FunctionInfo] = []
         self.comments: str = ""
+        self.order: list[ASTOrder] = []
 
     def visit_Import(self, node) -> None:
         """Extracts imports from the given node."""
         for alias in node.names:
-            self.imports.append((alias.name, alias.asname))
+            import_str = (alias.name, alias.asname)
+            self.imports.append(import_str)
+            self.order.append(ASTOrder(type="import", order=len(self.imports) - 1))
+
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node) -> None:
         """Extracts from imports from the given node."""
         for alias in node.names:
-            self.from_imports.append((node.module, alias.name, alias.asname))
+            from_import_str = (node.module, alias.name, alias.asname)
+            self.from_imports.append(from_import_str)
+            self.order.append(
+                ASTOrder(type="from_import", order=len(self.from_imports) - 1)
+            )
         self.generic_visit(node)
 
     def visit_Assign(self, node) -> None:
         """Extracts variables from the given node."""
         target = node.targets[0]
         if isinstance(target, ast.Name):
+            already_exists = target.id in self.variables
             self.variables[target.id] = ast.unparse(node.value)
+            if not already_exists:
+                self.order.append(
+                    ASTOrder(type="variable", order=len(self.variables.keys()) - 1)
+                )
         self.generic_visit(node)
 
     def visit_ClassDef(self, node) -> None:
@@ -127,6 +141,7 @@ class PromptAnalyzer(ast.NodeVisitor):
         class_info.body = "\n".join(body)
 
         self.classes.append(class_info)
+        self.order.append(ASTOrder(type="class", order=len(self.classes) - 1))
 
     def visit_AsyncFunctionDef(self, node):
         """Extracts async functions from the given node."""
@@ -160,11 +175,13 @@ class PromptAnalyzer(ast.NodeVisitor):
 
         # Assuming you have a list to store functions
         self.functions.append(function_info)
+        self.order.append(ASTOrder(type="function", order=len(self.functions) - 1))
 
     def visit_Module(self, node) -> None:
         """Extracts comments from the given node."""
         comments = ast.get_docstring(node, False)
         self.comments = "" if comments is None else comments
+        self.order.append(ASTOrder(type="comment", order=0))
         self.generic_visit(node)
 
     def check_function_changed(self, other: PromptAnalyzer) -> bool:
@@ -475,25 +492,29 @@ def _update_tag_decorator_with_version(
     return import_name
 
 
-def _update_mirascope_imports(imports: list[tuple[str, Optional[str]]]):
+def _update_mirascope_imports(analyzer: PromptAnalyzer):
     """Updates the mirascope import.
 
     Args:
         imports: The imports from the PromptAnalyzer class
     """
+    imports = analyzer.imports
     if not any(import_name == "mirascope" for import_name, _ in imports):
         imports.append(("mirascope", None))
+        index = 0
+        if analyzer.comments:
+            index = 1
+        analyzer.order.insert(index, ASTOrder(type="import", order=len(imports) - 1))
 
 
-def _update_mirascope_from_imports(
-    member: str, from_imports: list[tuple[str, str, Optional[str]]]
-):
+def _update_mirascope_from_imports(member: str, analyzer: PromptAnalyzer):
     """Updates the mirascope from imports.
 
     Args:
         member: The member to import.
         from_imports: The from imports from the PromptAnalyzer class
     """
+    from_imports = analyzer.from_imports
     if not any(
         (
             module_name == "mirascope"
@@ -504,6 +525,12 @@ def _update_mirascope_from_imports(
         for module_name, import_name, _ in from_imports
     ):
         from_imports.append(("mirascope", member, None))
+        index = 0
+        if analyzer.comments:
+            index = 1
+        analyzer.order.insert(
+            index, ASTOrder(type="from_import", order=len(from_imports) - 1)
+        )
 
 
 def write_prompt_to_template(
@@ -537,20 +564,6 @@ def write_prompt_to_template(
     if variables is None:
         variables = MirascopeCliVariables()
 
-    if command == MirascopeCommand.ADD:
-        # double quote revision ids to match how `ast.unparse()` formats strings
-        new_variables = {
-            k: f"'{v}'" if isinstance(v, str) else None
-            for k, v in variables.__dict__.items()
-        } | analyzer.variables
-    else:  # command == MirascopeCommand.USE
-        ignore_variable_keys = dict.fromkeys(ignore_variables, None)
-        new_variables = {
-            k: analyzer.variables[k]
-            for k in analyzer.variables
-            if k not in ignore_variable_keys
-        }
-
     if auto_tag:
         import_tag_name: Optional[str] = None
         mirascope_alias = "mirascope"
@@ -569,18 +582,70 @@ def write_prompt_to_template(
                 import_tag_name = _update_tag_decorator_with_version(
                     decorators, variables, mirascope_alias
                 )
-
         if import_tag_name == "tags":
-            _update_mirascope_from_imports(import_tag_name, analyzer.from_imports)
+            _update_mirascope_from_imports(import_tag_name, analyzer)
         elif import_tag_name == f"{mirascope_alias}.tags":
-            _update_mirascope_imports(analyzer.imports)
+            _update_mirascope_imports(analyzer)
 
+    for item in analyzer.order:
+        if item.type == "import":
+            item.render = analyzer.imports[item.order]
+        elif item.type == "from_import":
+            item.render = analyzer.from_imports[item.order]
+        elif item.type == "variable":
+            variable_name = list(analyzer.variables.keys())[item.order]
+            variable_value = analyzer.variables[variable_name]
+            item.render = (variable_name, variable_value)
+        elif item.type == "class":
+            item.render = analyzer.classes[item.order]
+        elif item.type == "function":
+            item.render = analyzer.functions[item.order]
+        elif item.type == "comment":
+            item.render = analyzer.comments
+
+    if command == MirascopeCommand.ADD:
+        # double quote revision ids to match how `ast.unparse()` formats strings
+        new_variables = {
+            k: f"'{v}'" if isinstance(v, str) else None
+            for k, v in variables.__dict__.items()
+        }
+        first_class_func_var_index = next(
+            (
+                i
+                for i, item in enumerate(analyzer.order)
+                if item.type in ["class", "function", "variable"]
+            ),
+            None,
+        )
+        new_variables_order = [
+            ASTOrder(type="variable", order=i, render=(k, v))
+            for i, (k, v) in enumerate(new_variables.items())
+        ]
+        if first_class_func_var_index is not None:
+            analyzer.order[
+                first_class_func_var_index:first_class_func_var_index
+            ] = new_variables_order
+        else:
+            analyzer.order += new_variables_order
+    else:  # command == MirascopeCommand.USE
+        ignore_variable_keys = dict.fromkeys(ignore_variables, None)
+        analyzer.order = [
+            item
+            for item in analyzer.order
+            if not (
+                item.type == "variable"
+                and item.render is not None
+                and item.render[0] in ignore_variable_keys
+            )
+        ]
     data = {
-        "comments": analyzer.comments,
-        "variables": new_variables,
-        "imports": analyzer.imports,
-        "from_imports": analyzer.from_imports,
-        "classes": analyzer.classes,
+        # "comments": analyzer.comments,
+        # "variables": new_variables,
+        # "imports": analyzer.imports,
+        # "from_imports": analyzer.from_imports,
+        # "classes": analyzer.classes,
+        # "functions": analyzer.functions,
+        "order": analyzer.order,
     }
     return template.render(**data)
 
