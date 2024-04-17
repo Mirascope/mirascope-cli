@@ -639,12 +639,6 @@ def write_prompt_to_template(
             )
         ]
     data = {
-        # "comments": analyzer.comments,
-        # "variables": new_variables,
-        # "imports": analyzer.imports,
-        # "from_imports": analyzer.from_imports,
-        # "classes": analyzer.classes,
-        # "functions": analyzer.functions,
         "order": analyzer.order,
     }
     return template.render(**data)
