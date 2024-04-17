@@ -13,8 +13,8 @@ pip install mirascope-cli
 If you're using the `mirascope` package, you can also install the CLI as an extra dependency:
 
 ```shell
-pip install mirascope[mirascope-cli]  # just the mirascope-cli
-pip install mirascope[all]            # all optional dependencies
+pip install mirascope[cli]  # just the mirascope-cli
+pip install mirascope[all]  # all optional dependencies
 ```
 
 ## The prompt management environment
