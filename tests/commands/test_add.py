@@ -36,10 +36,7 @@ def _initialize_tmp_mirascope(tmp_path: Path, golden_prompt: str):
 
 @pytest.mark.parametrize(
     "golden_prompt,auto_tag",
-    [
-        ("base_prompt", False),
-        ("base_prompt", True),
-    ],
+    [("base_prompt", False), ("base_prompt", True), ("call_with_variables", False)],
 )
 @pytest.mark.parametrize(
     "version_text_file",
