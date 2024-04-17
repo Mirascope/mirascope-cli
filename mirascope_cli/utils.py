@@ -635,7 +635,7 @@ def write_prompt_to_template(
             if not (
                 item.type == "variable"
                 and item.render is not None
-                and item.render[0] in ignore_variable_keys
+                and item.render[0] in ignore_variable_keys  # type: ignore
             )
         ]
     data = {
