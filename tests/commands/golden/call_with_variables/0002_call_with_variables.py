@@ -1,5 +1,4 @@
 """A call for recommending movies of a particular genre."""
-
 from mirascope import tags
 from mirascope.openai import OpenAICall, OpenAICallParams
 
@@ -7,7 +6,12 @@ prev_revision_id = "0001"
 revision_id = "0002"
 number = 1
 chat = OpenAICall()
-a_list = [1, 2, 3]
+
+
+def foo(a: int, b: str) -> int:
+    """ABC"""
+
+    return a + int(b)
 
 
 @tags(["movie_project", "version:0001"])
@@ -23,9 +27,14 @@ class MovieRecommender(OpenAICall):
     include succinct and clear descriptions of the movie. You also make sure to pique
     their interest by mentioning any famous actors in the movie that might be of
     interest.
-
+    
+    
     USER:
     Please recommend 3 movies in the {genre} cetegory.
     """
+
     genre: str
     call_params = OpenAICallParams(model="gpt-3.5-turbo")
+
+
+a_list = [1, 2, 3]

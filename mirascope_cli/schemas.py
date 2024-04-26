@@ -1,5 +1,5 @@
 """Contains the schema for files created by the mirascope cli."""
-from typing import Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -47,3 +47,18 @@ class FunctionInfo(BaseModel):
     decorators: list[str]
     docstring: Optional[str]
     is_async: bool
+
+
+class ASTOrder(BaseModel):
+    type: Literal["class", "function", "import", "from_import", "variable", "comment"]
+    order: int
+    render: Optional[
+        Union[
+            ClassInfo,
+            FunctionInfo,
+            tuple[str, Optional[str]],
+            tuple[str, str, Optional[str]],
+            tuple[str, str],
+            str,
+        ]
+    ] = None

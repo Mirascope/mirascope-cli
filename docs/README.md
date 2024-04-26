@@ -169,9 +169,8 @@ mirascope remove book_recommender 0001
 
 Here you specify which prompt and version you want to remove. Removal will delete the file but also update any versions that have the deleted version in their `prev_revision_id` to `None`.
 
-!!! note
-
-    `mirascope remove` will not remove the prompt if `current_revision` is the same as the prompt you are trying to remove. You can use `mirascope add` if you have incoming changes or `mirascope use` to swap `current_revision`.
+> [!NOTE]
+> `mirascope remove` will not remove the prompt if `current_revision` is the same as the prompt you are trying to remove. You can use `mirascope add` if you have incoming changes or `mirascope use` to swap `current_revision`.
 
 ## Mirascope INI
 
@@ -206,8 +205,8 @@ auto_tag = True
 
 There is a lot more to be added to the Mirascope CLI. Here is a list in no order of things we are thinking about adding next:
 
-- prompt comparison - A way to compare two different versions with a golden test
-- history - View the revision history of a version
-- testing - Adding input and outputs to the revision for CI testing
+- [ ]  prompt comparison - A way to compare two different versions with a golden test
+- [ ]  history - View the revision history of a version
+- [ ]  testing - Adding input and outputs to the revision for CI testing
 
 If you want some of these features implemented or if you think something is useful but not on this list, let us know!
