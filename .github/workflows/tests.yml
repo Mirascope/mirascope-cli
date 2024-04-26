@@ -29,7 +29,9 @@ jobs:
         uses: snok/install-poetry@v1.3.1
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: |
+          poetry install --with dev
+          pip install mirascope
 
       - name: Run Tests
         run: poetry run pytest tests/ --cov=./ --cov-report=xml
