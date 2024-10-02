@@ -54,7 +54,7 @@ Here is a rundown of each directory and file:
 The directory names can be changed anytime by modifying the `mirascope.ini` file or when running the `init` command.
 
 ```shell
-mirascope init --mirascope_location my_mirascope --prompts_location calls
+mirascope init --mirascope-location my_mirascope --prompts-location calls
 ```
 
 ## Saving your first prompt
